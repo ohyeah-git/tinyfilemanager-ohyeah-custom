@@ -33,13 +33,13 @@ $use_auth = true;
 // Generate secure password hash - https://tinyfilemanager.github.io/docs/pwd.html
 $auth_users = array(
     'admin' => '$2y$10$/K.hjNr84lLNDt8fTXjoI.DBp6PpeyoJ.mGwrrLuCZfAwfSAGqhOW', //admin@123
-    'user' => '$2y$10$Fg6Dz8oH9fPoZ2jJan5tZuv6Z4Kp7avtQ9bDfrdRntXtPeiMAZyGO' //12345
+    //'user' => '$2y$10$Fg6Dz8oH9fPoZ2jJan5tZuv6Z4Kp7avtQ9bDfrdRntXtPeiMAZyGO' //12345
 );
 
 // Readonly users
 // e.g. array('users', 'guest', ...)
 $readonly_users = array(
-    'user'
+    //'user'
 );
 
 // Global readonly, including when auth is not being used
@@ -71,16 +71,15 @@ $default_timezone = 'Asia/Tokyo'; // JST
 //make sure update $root_url in next section
 // @OHYEAH_CUSTOM: Set user root dhirectory to $root_path START
 // 修正前: $root_path = $_SERVER['DOCUMENT_ROOT'];
-$root = getenv('HOME') ?: $_SERVER['HOME'] ?? false; // 1. まずは環境変数からユーザーホームを探す
-if (!$root) {
-    $parts = explode(DIRECTORY_SEPARATOR, __DIR__); // 2. 取れなかったら、__DIR__ から 3階層目までを無理やり取る
-    if (count($parts) > 3) {
-        $root = implode(DIRECTORY_SEPARATOR, array_slice($parts, 0, 3));
-    } else { // 3. それでも取れなかったらドキュメントルート
-        $root = $_SERVER['DOCUMENT_ROOT']; // 最終手段
-    }
+$root_path = $_SERVER['HOME'] ?? getenv('HOME'); // 1. 環境変数をチェック（CLI実行時などのため）
+if (!$root && function_exists('posix_getpwuid')) { // 2. 取れなかったらシステム情報から取得を試みる
+  $userInfo = posix_getpwuid(posix_geteuid());
+  $root_path = $userInfo['dir'] ?? false;
 }
-$root_path = $root;
+if (!$root_path) { // 3. それでもダメならスクリプトパスから逆算する（最終手段）
+  $parts = explode(DIRECTORY_SEPARATOR, __DIR__); 
+  $root_path = count($parts) > 3 ? implode(DIRECTORY_SEPARATOR, array_slice($parts, 0, 3)) : __DIR__;
+}
 // @OHYEAH_CUSTOM: Set user root dhirectory to $root_path END
 
 // Root url for links in file manager.Relative to $http_host. Variants: '', 'path/to/subfolder'
